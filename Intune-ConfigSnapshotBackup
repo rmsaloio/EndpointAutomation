@@ -1,0 +1,149 @@
+<########################################################################
+# Script Description: 
+# This script captures snapshots of Intune configuration settings, 
+# exports them using Microsoft365DSC, compresses the files into a ZIP, 
+# and uploads them to Azure Blob Storage.
+# 
+# Author: Rui Saloio
+# Date: 2024-08-12
+# Version: 1.0
+# 
+# Prerequisites:
+# - Microsoft365DSC module
+# - Az.Storage module
+# 
+# ** Important: **
+# - Ensure to replace sensitive values such as ApplicationId, ApplicationSecret, 
+#   TenantId, Storage Account Key, etc., with placeholders before running.
+# 
+#########################################################################>
+
+# Create a directory for storing the Intune configuration snapshot
+New-Item -ItemType Directory -Path "$PSScriptRoot\$(Get-Date -f yyyy-MM-dd)"
+$Logfile = "$PSScriptRoot\$(Get-Date -f yyyy-MM-dd)\Intune_Config_Snapshot_$(Get-Date -f yyyy-MM-dd).log"
+
+Write-Host "Script Snapshots of Intune Configurations - Starting Run"
+Write-Host "Installing and updating Microsoft365DSC"
+
+# Check if Microsoft365DSC module is installed, if not, install it
+if (-not (Get-Module -ListAvailable -Name "Microsoft365DSC")) {
+    Write-Host "Installing Microsoft365DSC module..."
+    Install-Module Microsoft365DSC -Force
+} else {
+    Write-Host "Microsoft365DSC module is already installed."
+}
+
+# Check if Az.Storage module is installed, if not, install it
+if (-not (Get-Module -ListAvailable -Name "Az.Storage")) {
+    Write-Host "Installing Az.Storage module..."
+    Install-Module -Name Az.Storage -AllowClobber -Force
+} else {
+    Write-Host "Az.Storage module is already installed."
+}
+
+# Update the dependencies of the Microsoft365DSC module
+Write-Host "Updating Microsoft365DSC dependencies..."
+Update-M365DSCDependencies
+
+Write-Host "Getting application information for Application + Secret authentication"
+
+# Replace the following placeholders with your actual credentials or configuration
+$ApplicationId = "REPLACE_WITH_APPLICATION_ID"
+$ApplicationSecret = "REPLACE_WITH_APPLICATION_SECRET"
+$TenantId = "REPLACE_WITH_TENANT_ID"
+
+Write-Host "Exporting resources using Export-M365DSCConfiguration"
+
+# Export the Intune configurations
+Export-M365DSCConfiguration -Components @(
+    "IntuneAccountProtectionLocalAdministratorPasswordSolutionPolicy", 
+    "IntuneAccountProtectionLocalUserGroupMembershipPolicy", 
+    "IntuneAccountProtectionPolicy", 
+    "IntuneAntivirusPolicyWindows10SettingCatalog", 
+    "IntuneAppConfigurationPolicy", 
+    "IntuneApplicationControlPolicyWindows10", 
+    "IntuneAppProtectionPolicyAndroid", 
+    "IntuneAppProtectionPolicyiOS", 
+    "IntuneASRRulesPolicyWindows10", 
+    "IntuneAttackSurfaceReductionRulesPolicyWindows10ConfigManager", 
+    "IntuneDeviceAndAppManagementAssignmentFilter", 
+    "IntuneDeviceCategory", 
+    "IntuneDeviceCleanupRule", 
+    "IntuneDeviceCompliancePolicyAndroid", 
+    "IntuneDeviceCompliancePolicyAndroidDeviceOwner", 
+    "IntuneDeviceCompliancePolicyAndroidWorkProfile", 
+    "IntuneDeviceCompliancePolicyiOs", 
+    "IntuneDeviceCompliancePolicyMacOS", 
+    "IntuneDeviceCompliancePolicyWindows10", 
+    "IntuneDeviceConfigurationAdministrativeTemplatePolicyWindows10", 
+    "IntuneDeviceConfigurationDefenderForEndpointOnboardingPolicyWindows10", 
+    "IntuneDeviceConfigurationDeliveryOptimizationPolicyWindows10", 
+    "IntuneDeviceConfigurationDomainJoinPolicyWindows10", 
+    "IntuneDeviceConfigurationEmailProfilePolicyWindows10", 
+    "IntuneDeviceConfigurationEndpointProtectionPolicyWindows10", 
+    "IntuneDeviceConfigurationFirmwareInterfacePolicyWindows10", 
+    "IntuneDeviceConfigurationHealthMonitoringConfigurationPolicyWindows10", 
+    "IntuneDeviceConfigurationIdentityProtectionPolicyWindows10", 
+    "IntuneDeviceConfigurationImportedPfxCertificatePolicyWindows10", 
+    "IntuneDeviceConfigurationKioskPolicyWindows10", 
+    "IntuneDeviceConfigurationNetworkBoundaryPolicyWindows10", 
+    "IntuneDeviceConfigurationPkcsCertificatePolicyWindows10", 
+    "IntuneDeviceConfigurationPolicyAndroidDeviceAdministrator", 
+    "IntuneDeviceConfigurationPolicyAndroidDeviceOwner", 
+    "IntuneDeviceConfigurationPolicyAndroidOpenSourceProject", 
+    "IntuneDeviceConfigurationPolicyAndroidWorkProfile", 
+    "IntuneDeviceConfigurationPolicyiOS", 
+    "IntuneDeviceConfigurationPolicyMacOS", 
+    "IntuneDeviceConfigurationPolicyWindows10", 
+    "IntuneDeviceConfigurationSCEPCertificatePolicyWindows10", 
+    "IntuneDeviceConfigurationSecureAssessmentPolicyWindows10", 
+    "IntuneDeviceConfigurationSharedMultiDevicePolicyWindows10", 
+    "IntuneDeviceConfigurationTrustedCertificatePolicyWindows10", 
+    "IntuneDeviceConfigurationVpnPolicyWindows10", 
+    "IntuneDeviceConfigurationWindowsTeamPolicyWindows10", 
+    "IntuneDeviceConfigurationWiredNetworkPolicyWindows10", 
+    "IntuneDeviceEnrollmentLimitRestriction", 
+    "IntuneDeviceEnrollmentPlatformRestriction", 
+    "IntuneDeviceEnrollmentStatusPageWindows10", 
+    "IntuneEndpointDetectionAndResponsePolicyWindows10", 
+    "IntuneExploitProtectionPolicyWindows10SettingCatalog", 
+    "IntunePolicySets", 
+    "IntuneRoleAssignment", 
+    "IntuneRoleDefinition", 
+    "IntuneSettingCatalogASRRulesPolicyWindows10", 
+    "IntuneSettingCatalogCustomPolicyWindows10", 
+    "IntuneWifiConfigurationPolicyAndroidDeviceAdministrator", 
+    "IntuneWifiConfigurationPolicyAndroidEnterpriseDeviceOwner", 
+    "IntuneWifiConfigurationPolicyAndroidEnterpriseWorkProfile", 
+    "IntuneWifiConfigurationPolicyAndroidForWork", 
+    "IntuneWifiConfigurationPolicyAndroidOpenSourceProject", 
+    "IntuneWifiConfigurationPolicyIOS", 
+    "IntuneWifiConfigurationPolicyMacOS", 
+    "IntuneWifiConfigurationPolicyWindows10", 
+    "IntuneWindowsAutopilotDeploymentProfileAzureADHybridJoined", 
+    "IntuneWindowsAutopilotDeploymentProfileAzureADJoined", 
+    "IntuneWindowsInformationProtectionPolicyWindows10MdmEnrolled", 
+    "IntuneWindowsUpdateForBusinessFeatureUpdateProfileWindows10", 
+    "IntuneWindowsUpdateForBusinessRingUpdateProfileWindows10"
+) -ApplicationId $ApplicationId -ApplicationSecret $ApplicationSecret -TenantId $TenantId -Path "$PSScriptRoot\$(Get-Date -f yyyy-MM-dd)" -FileName "Intune_Config.ps1"
+
+# Create folder and define the ZIP file
+$dateFolderName = (Get-Date -Format yyyy-MM-dd)
+$folderPath = Join-Path -Path $PSScriptRoot -ChildPath $dateFolderName
+
+$zipFileName = "$dateFolderName.zip"
+$zipFilePath = Join-Path -Path $PSScriptRoot -ChildPath $zipFileName
+
+# Create ZIP file from the folder if it exists
+if (Test-Path -Path $folderPath) {
+    Compress-Archive -Path $folderPath -DestinationPath $zipFilePath -Force
+    Write-Output "ZIP file successfully created: $zipFilePath"
+} else {
+    Write-Output "The folder does not exist: $folderPath"
+}
+
+# Upload the ZIP file to Azure Blob Storage (replace with actual Azure Storage details)
+$Context = New-AzStorageContext -StorageAccountName "REPLACE_WITH_STORAGE_ACCOUNT_NAME" -StorageAccountKey "REPLACE_WITH_STORAGE_ACCOUNT_KEY"
+Set-AzStorageBlobContent -File $zipFilePath -Container "REPLACE_WITH_CONTAINER_NAME" -Blob $zipFileName -Context $Context
+
+Write-Host "Script Snapshots of Intune Configurations - Ending Run"
