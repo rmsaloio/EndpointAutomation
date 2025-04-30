@@ -10,7 +10,7 @@ Rui Saloio
 .VERSION
 1.0
 .LASTUPDATED
-2024-04-8
+2024-04-08
 #>
 
 $RemediationName = "Windows - Get Hardware Hash"
