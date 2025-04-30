@@ -9,7 +9,7 @@ Rui Saloio
 .VERSION
 1.0
 .LASTUPDATED
-2024-06-06
+2024-06-07
 #>
 
 $RemediationName = "Windows - Delete IntuneManagementExtension Win32Apps Keys"
