@@ -3,7 +3,7 @@
     Description: This script connects to the Microsoft Graph API to export device health remediation scripts, 
                  including their detection and remediation components, as well as related metadata.
     Author: Rui Saloio
-    Date: 2025-04-30
+    Date: 2025-01-30
     Version: 1.0
 #>
 
