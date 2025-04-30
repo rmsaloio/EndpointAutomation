@@ -1,0 +1,42 @@
+<#
+.SYNOPSIS
+Remediation Script to Escrow BitLocker Recovery Key of OS Drive to Azure AD (Microsoft Entra ID).
+.DESCRIPTION
+This script securely backs up the BitLocker recovery key for the OS disk (C:) to Azure Active Directory using the 
+'BackupToAAD-BitLockerKeyProtector' cmdlet. Intended for use in Intune Remediation scenarios to ensure compliance and security.
+.AUTHOR
+Rui Saloio
+.VERSION
+1.0
+.LASTUPDATED
+2025-03-13
+#>
+
+$RemediationName = "Windows - OS Disk Bitlocker Key Escrow"
+$LogName = "REMEDIATION-REM_$RemediationName"
+
+# Function to write log entries
+Function Write-Log {
+    Param ([string]$LogString)
+    $LogPath = "$env:ProgramData\Microsoft\IntuneManagementExtension\Logs\$LogName.log"
+    $Timestamp = "[{0:MM/dd/yy} {0:HH:mm:ss}]" -f (Get-Date)
+    $LogMessage = "$Timestamp $LogString"
+    $LogMessage | Tee-Object -Append $LogPath
+}
+
+# Create initial log entry
+$ScriptLogPath = "$env:ProgramData\Microsoft\IntuneManagementExtension\Logs\$LogName.log"
+"=================================================================================" | Tee-Object -Append $ScriptLogPath
+Write-Log "Starting remediation script: '$LogName'."
+
+# Retrieve the KeyProtector ID for the RecoveryPassword protector on drive C:
+$DriveCKPID = ((Get-BitLockerVolume -MountPoint "C:").KeyProtector | Where-Object {
+    $_.KeyProtectorType -eq 'RecoveryPassword'
+}).KeyProtectorId
+
+# Backup the BitLocker key to Azure AD
+$LogOutput = BackupToAAD-BitLockerKeyProtector -MountPoint "C:" -KeyProtectorId $DriveCKPID
+$LogOutput | Tee-Object -Append $ScriptLogPath
+
+Write-Log "Successfully completed BitLocker Recovery Key escrow to Microsoft Entra ID."
+EXIT
